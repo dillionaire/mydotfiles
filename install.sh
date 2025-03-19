@@ -7,6 +7,10 @@ NC='\033[0m' # No Color
 
 echo "Installing dotfiles..."
 
+# Create necessary directories
+mkdir -p "$HOME/.config/vscode"
+mkdir -p "$HOME/bin"
+
 # Check if Oh My Zsh is installed
 if [ ! -d "$HOME/.oh-my-zsh" ]; then
     echo "${RED}Oh My Zsh not found. Installing...${NC}"
@@ -28,15 +32,20 @@ if [ ! -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ]; then
     git clone https://github.com/zsh-users/zsh-syntax-highlighting $ZSH_CUSTOM/plugins/zsh-syntax-highlighting
 fi
 
-# Backup existing .zshrc if it exists
-if [ -f "$HOME/.zshrc" ]; then
-    echo "Backing up existing .zshrc..."
-    mv "$HOME/.zshrc" "$HOME/.zshrc.backup.$(date +%Y%m%d_%H%M%S)"
-fi
+# Backup existing files
+for file in .zshrc .bash_profile .zprofile; do
+    if [ -f "$HOME/$file" ]; then
+        echo "Backing up existing $file..."
+        mv "$HOME/$file" "$HOME/$file.backup.$(date +%Y%m%d_%H%M%S)"
+    fi
+done
 
-# Create symbolic link for .zshrc
-echo "Creating symbolic link for .zshrc..."
-ln -sf "$PWD/.zshrc" "$HOME/.zshrc"
+# Create symbolic links
+echo "Creating symbolic links..."
+ln -sf "$PWD/config/.zshrc" "$HOME/.zshrc"
+ln -sf "$PWD/config/.bash_profile" "$HOME/.bash_profile"
+ln -sf "$PWD/config/.zprofile" "$HOME/.zprofile"
+ln -sf "$PWD/config/vscode/settings.json" "$HOME/.config/vscode/settings.json"
 
 # Check if running on macOS
 if [[ "$(uname)" == "Darwin" ]]; then
@@ -46,16 +55,14 @@ if [[ "$(uname)" == "Darwin" ]]; then
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     fi
 
-    # Install UV if not present
-    if ! command -v uv >/dev/null 2>&1; then
-        echo "Installing UV..."
-        brew install uv
-    fi
+    # Install essential tools
+    echo "Installing essential tools..."
+    brew install uv go docker cloudflared n8n
 
-    # Install Go if not present
-    if ! command -v go >/dev/null 2>&1; then
-        echo "Installing Go..."
-        brew install go
+    # Install VS Code if not present
+    if ! command -v code >/dev/null 2>&1; then
+        echo "Installing Visual Studio Code..."
+        brew install --cask visual-studio-code
     fi
 fi
 
@@ -63,6 +70,12 @@ fi
 if [ ! -d "$HOME/.nvm" ]; then
     echo "Installing NVM..."
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+fi
+
+# Setup Python environment
+if command -v uv >/dev/null 2>&1; then
+    echo "Setting up Python environment..."
+    uv pip install jupyter ipython matplotlib
 fi
 
 echo "${GREEN}Installation complete!${NC}"

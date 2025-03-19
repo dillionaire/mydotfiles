@@ -9,7 +9,24 @@ Thumbs.db
 
 # Editor directories and files
 .idea
-.vscode
 *.swp
 *.swo
 *~
+
+# History files
+.zsh_history
+.bash_history
+.python_history
+.node_repl_history
+
+# Caches
+.zcompdump*
+.cache/
+.npm/
+__pycache__/
+
+# Local configurations that shouldn't be shared
+.CFUserTextEncoding
+.Trash/
+.ssh/
+.z

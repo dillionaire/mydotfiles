@@ -2,41 +2,37 @@
 
 Personal configuration files for development environment setup.
 
-## Prerequisites
+## What's Included
 
-1. Install Oh My Zsh:
-```bash
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-```
+### Shell Configuration
+- `.zshrc` - Oh My Zsh configuration with custom plugins and settings
+- `.zprofile` - Login shell configuration
+- `.bash_profile` - Bash configuration (for compatibility)
 
-2. Install required Oh My Zsh plugins:
-```bash
-# zsh-autosuggestions
-git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+### Development Tools
+- VS Code settings
+- Python environment setup (UV, IPython, Jupyter)
+- Node.js setup (NVM)
+- Go environment
+- Docker configuration
 
-# zsh-syntax-highlighting
-git clone https://github.com/zsh-users/zsh-syntax-highlighting ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
-```
-
-3. Install other dependencies:
-```bash
-# On macOS
-brew install uv go
-
-# Install Node Version Manager (nvm)
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-```
+### Additional Tools
+- Cloudflared configuration
+- n8n setup
+- Jupyter and IPython configuration
 
 ## Installation
 
 1. Clone this repository:
 ```bash
 git clone https://github.com/dillionaire/mydotfiles.git ~/.dotfiles
+cd ~/.dotfiles
 ```
 
-2. Create symbolic links:
+2. Run the installer:
 ```bash
-ln -sf ~/.dotfiles/.zshrc ~/.zshrc
+chmod +x install.sh
+./install.sh
 ```
 
 3. Reload your shell:
@@ -46,32 +42,46 @@ source ~/.zshrc
 
 ## Features
 
-### Oh My Zsh Configuration
-- Theme: af-magic
-- Plugins:
-  - git: Git integration and aliases
+### Shell Configuration
+- Oh My Zsh with af-magic theme
+- Custom plugins including:
+  - git: Git integration
   - vscode: VS Code integration
-  - z: Quick directory jumping
-  - zsh-autosuggestions: Fish-like autosuggestions
-  - zsh-syntax-highlighting: Fish-like syntax highlighting
+  - z: Directory jumping
+  - zsh-autosuggestions
+  - zsh-syntax-highlighting
 
-### Development Tools
-- UV package manager for Python
-- Golang environment setup
-- NVM (Node Version Manager)
-- Fabric integration for note-taking
+### Development Environment
+- UV for Python package management
+- Go development setup
+- Node.js with NVM
+- Docker configuration
+- VS Code settings and extensions
 
-### Quality of Life Features
-- OS-specific aliases (different for macOS and Linux)
-- Path deduplication
-- Performance optimizations
-- Homebrew integration
-- VS Code integration
+### Additional Features
+- Cloudflared for secure tunneling
+- n8n workflow automation
+- Jupyter notebook configuration
+- IPython setup
+- Local bin directory in PATH
+
+## Directory Structure
+```
+.
+├── config/
+│   ├── .zshrc
+│   ├── .zprofile
+│   ├── .bash_profile
+│   └── vscode/
+│       └── settings.json
+├── install.sh
+└── README.md
+```
 
 ## Customization
 
-To modify the configuration:
-1. Edit `~/.dotfiles/.zshrc`
+To modify configurations:
+1. Edit files in the `config/` directory
 2. Run `source ~/.zshrc` to apply changes
 
 Or use the alias:
@@ -81,18 +91,20 @@ zshconfig  # Opens .zshrc in VS Code
 
 ## Troubleshooting
 
-### Plugin Issues
-If plugins aren't working, ensure they're installed:
+### Common Issues
+
+1. Oh My Zsh plugins not working:
 ```bash
 ls ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/
 ```
 
-Should show:
-- zsh-autosuggestions
-- zsh-syntax-highlighting
-
-### UV Integration
-If UV commands aren't working, ensure it's installed:
+2. UV not found:
 ```bash
 brew install uv  # on macOS
+```
+
+3. VS Code settings not applied:
+```bash
+mkdir -p ~/.config/vscode
+ln -sf ~/.dotfiles/config/vscode/settings.json ~/.config/vscode/settings.json
 ```
