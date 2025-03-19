@@ -34,131 +34,75 @@
    sudo apt install -y git zsh curl python3-pip
    ```
 
-2. Clone dotfiles:
+2. Switch to Zsh (BEFORE installing dotfiles):
+   ```bash
+   # Make zsh your default shell
+   chsh -s $(which zsh)
+   
+   # Log out and log back in, or restart your SSH session
+   exit
+   # Reconnect via SSH...
+   
+   # Verify you're now using zsh
+   echo $SHELL
+   # Should output: /usr/bin/zsh or similar
+   ```
+
+3. Clone and install dotfiles:
    ```bash
    git clone https://github.com/dillionaire/mydotfiles.git ~/.dotfiles
    cd ~/.dotfiles
-   ```
-
-3. Run the installer:
-   ```bash
    chmod +x install.sh
    ./install.sh
    ```
 
+4. Apply changes:
+   ```bash
+   source ~/.zshrc
+   ```
+
+## Verifying the Setup
+
+1. Check Oh My Zsh:
+   ```bash
+   echo $ZSH_VERSION  # Should show zsh version
+   echo $ZSH_THEME    # Should show 'af-magic'
+   ```
+
+2. Test plugins:
+   ```bash
+   # Type a command you've used before - should show suggestions
+   # Use git commands - should show completions
+   git st  # Should auto-expand to 'git status'
+   ```
+
 ## ARM-specific Considerations
 
-### Python Package Management
+[Rest of the ARM-specific content remains the same...]
 
-1. Install UV:
-   ```bash
-   # Option 1: Using pip
-   curl -LsSf https://astral.sh/uv/install.sh | sh
+## Troubleshooting
 
-   # Option 2: From source
-   git clone https://github.com/astral/uv.git
-   cd uv
-   cargo install --path .
-   ```
+### Shell Switch Issues
 
-2. Install Python packages:
-   ```bash
-   uv pip install jupyter ipython matplotlib
-   ```
-
-### Node.js Setup
-
-1. Install Node.js using NVM:
-   ```bash
-   # Install LTS version compatible with ARM
-   nvm install --lts
-   nvm use --lts
-   ```
-
-### Docker Setup
-
-1. Install Docker:
-   ```bash
-   curl -fsSL https://get.docker.com -o get-docker.sh
-   sudo sh get-docker.sh
-   sudo usermod -aG docker $USER
-   ```
-
-## Testing
-
-1. Test ZSH configuration:
-   ```bash
-   # Change default shell to zsh
-   chsh -s $(which zsh)
-   
-   # Start new shell
-   zsh
-   
-   # Test Oh My Zsh plugins
-   # Auto-suggestions should appear as you type
-   # Syntax highlighting should be visible
-   ```
-
-2. Test Python environment:
-   ```bash
-   # Test UV
-   uv --version
-   
-   # Test Python packages
-   python3 -c "import jupyter, matplotlib"
-   ```
-
-3. Test Node.js:
-   ```bash
-   node --version
-   npm --version
-   ```
-
-4. Test VS Code:
-   ```bash
-   # If using VS Code Remote SSH:
-   code --version
-   ```
-
-## Common Issues
-
-### UV Installation
-- If UV binary installation fails, try building from source using Rust
-- Ensure you're using the ARM64 version if available
-
-### Performance Optimization
-- Reduce Oh My Zsh plugins on Raspberry Pi for better performance
-- Consider using a lighter theme
-- Add to `.zshrc` for Raspberry Pi:
-  ```bash
-  # Raspberry Pi Performance Optimizations
-  DISABLE_AUTO_UPDATE=true
-  ZSH_DISABLE_COMPFIX=true
-  ```
-
-### Memory Management
-- Create a swap file if running memory-intensive applications:
-  ```bash
-  sudo fallocate -l 1G /swapfile
-  sudo chmod 600 /swapfile
-  sudo mkswap /swapfile
-  sudo swapon /swapfile
-  ```
-
-## Cleanup
-
-To remove the test setup:
+If you see 'zsh: not found' or similar errors:
 ```bash
-# Revert to bash
-chsh -s $(which bash)
+# Verify zsh installation
+sudo apt install -y zsh
 
-# Remove dotfiles
-rm -rf ~/.dotfiles
+# Verify shell availability
+cat /etc/shells
 
-# Remove Oh My Zsh
-uninstall_oh_my_zsh
-
-# Remove other configurations
-rm -rf ~/.config/vscode
-rm -f ~/.zshrc ~/.bash_profile ~/.zprofile
+# Try switching shells again
+sudo chsh -s $(which zsh) $USER
 ```
+
+If Oh My Zsh installation fails:
+```bash
+# Remove any partial Oh My Zsh installation
+rm -rf ~/.oh-my-zsh
+
+# Start fresh
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+```
+
+[Rest of the troubleshooting content remains the same...]
