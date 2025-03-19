@@ -1,103 +1,92 @@
-# If you come from bash you might have to change your $PATH.
-export PATH=$HOME/bin:/bin:/usr/bin:/usr/local/bin
-export PATH=$PATH:$HOME/.poetry/bin
-export PATH=$HOME/.asdf:$PATH
+# Path to your Oh My Zsh installation
+export ZSH="$HOME/.oh-my-zsh"
 
-# Path to your oh-my-zsh installation.
-export ZSH="/home/ubuntu/.oh-my-zsh"
-
-# Set name of the theme to load --- if set to "random", it will
-# load a random theme each time oh-my-zsh is loaded, in which case,
-# to know which specific one was loaded, run: echo $RANDOM_THEME
-# See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
+# Theme for Oh My Zsh
 ZSH_THEME="af-magic"
 
-# Set list of themes to pick from when loading at random
-# Setting this variable when ZSH_THEME=random will cause zsh to load
-# a theme from this variable instead of looking in $ZSH/themes/
-# If set to an empty array, this variable will have no effect.
-# ZSH_THEME_RANDOM_CANDIDATES=( "robbyrussell" "agnoster" )
+# Plugins
+plugins=(git vscode z zsh-autosuggestions zsh-syntax-highlighting)
 
-# Uncomment the following line to use case-sensitive completion.
-# CASE_SENSITIVE="true"
-
-# Uncomment the following line to use hyphen-insensitive completion.
-# Case-sensitive completion must be off. _ and - will be interchangeable.
-# HYPHEN_INSENSITIVE="true"
-
-# Uncomment the following line to disable bi-weekly auto-update checks.
-# DISABLE_AUTO_UPDATE="true"
-
-# Uncomment the following line to automatically update without prompting.
-# DISABLE_UPDATE_PROMPT="true"
-
-# Uncomment the following line to change how often to auto-update (in days).
-# export UPDATE_ZSH_DAYS=13
-
-# Uncomment the following line if pasting URLs and other text is messed up.
-# DISABLE_MAGIC_FUNCTIONS="true"
-
-# Uncomment the following line to disable colors in ls.
-# DISABLE_LS_COLORS="true"
-
-# Uncomment the following line to disable auto-setting terminal title.
-# DISABLE_AUTO_TITLE="true"
-
-# Uncomment the following line to enable command auto-correction.
-# ENABLE_CORRECTION="true"
-
-# Uncomment the following line to display red dots whilst waiting for completion.
-# COMPLETION_WAITING_DOTS="true"
-
-# Uncomment the following line if you want to disable marking untracked files
-# under VCS as dirty. This makes repository status check for large repositories
-# much, much faster.
-# DISABLE_UNTRACKED_FILES_DIRTY="true"
-
-# Uncomment the following line if you want to change the command execution time
-# stamp shown in the history command output.
-# You can set one of the optional three formats:
-# "mm/dd/yyyy"|"dd.mm.yyyy"|"yyyy-mm-dd"
-# or set a custom format using the strftime function format specifications,
-# see 'man strftime' for details.
-# HIST_STAMPS="mm/dd/yyyy"
-
-# Would you like to use another custom folder than $ZSH/custom?
-# ZSH_CUSTOM=/path/to/new-custom-folder
-
-# Which plugins would you like to load?
-# Standard plugins can be found in $ZSH/plugins/
-# Custom plugins may be added to $ZSH_CUSTOM/plugins/
-# Example format: plugins=(rails git textmate ruby lighthouse)
-# Add wisely, as too many plugins slow down shell startup.
-plugins=(python pip git asdf)
-
+# Load Oh My Zsh
 source $ZSH/oh-my-zsh.sh
 
-# User configuration
+# Load homebrew path
+export PATH="/opt/homebrew/bin:$PATH"
 
-# export MANPATH="/usr/local/man:$MANPATH"
+# Golang environment variables
+export GOROOT=$(brew --prefix go)/libexec
+export GOPATH=$HOME/go
+export PATH="$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin:$PATH"
 
-# You may need to manually set your language environment
-# export LANG=en_US.UTF-8
+# Avoid duplicate PATH entries
+PATH=$(echo "$PATH" | awk -v RS=: -v ORS=: '!a[$1]++' | sed 's/:$//')
 
-# Preferred editor for local and remote sessions
-# if [[ -n $SSH_CONNECTION ]]; then
-#   export EDITOR='vim'
-# else
-#   export EDITOR='mvim'
-# fi
+# Use compinit caching for faster shell initialization
+autoload -Uz compinit && compinit -i
 
-# Compilation flags
-# export ARCHFLAGS="-arch x86_64"
+# Ensure that NVM is correctly installed and sourced
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" # This loads nvm bash_completion
 
-# Set personal aliases, overriding those provided by oh-my-zsh libs,
-# plugins, and themes. Aliases can be placed here, though oh-my-zsh
-# users are encouraged to define aliases within the ZSH_CUSTOM folder.
-# For a full list of active aliases, run `alias`.
-#
-# Example aliases
-# alias zshconfig="mate ~/.zshrc"
-# alias ohmyzsh="mate ~/.oh-my-zsh"
+# Check if 'fabric' is installed
+if ! command -v fabric &> /dev/null; then
+    echo "Warning: 'fabric' is not installed or not in PATH"
+fi
 
-. $HOME/.asdf/asdf.sh
+# Base directory for Obsidian notes
+obsidian_base="${OBSIDIAN_BASE:-$HOME/Code/obsidian}"
+if [ ! -d "$obsidian_base" ]; then
+    echo "Warning: Obsidian base directory does not exist at $obsidian_base"
+fi
+
+# Dynamically define functions based on pattern files in a specific directory
+if [ -d ~/.config/fabric/patterns ] && [ "$(ls -A ~/.config/fabric/patterns)" ]; then
+    for pattern_file in ~/.config/fabric/patterns/*; do
+        pattern_name=$(basename "$pattern_file")
+        unalias "$pattern_name" 2>/dev/null
+        eval "
+        $pattern_name() {
+            local title=\$1
+            local date_stamp=\$(date +'%Y-%m-%d')
+            local output_path=\"\$obsidian_base/\${date_stamp}-\${title}.md\"
+
+            if [ -n \"\$title\" ]; then
+                fabric --pattern \"$pattern_name\" -o \"\$output_path\"
+            else
+                fabric --pattern \"$pattern_name\" --stream
+            fi
+        }
+        "
+    done
+fi
+
+# Define a shortcut for fabric commands with YouTube links
+yt() {
+    local video_link="$1"
+    fabric -y "$video_link" --transcript
+}
+
+# Aliases
+alias zshconfig="code ~/.zshrc"
+alias ll="ls -la"
+
+# OS-specific aliases
+case "$(uname)" in
+    Linux)
+        alias update="sudo apt update && sudo apt upgrade -y"
+        ;;
+    Darwin)
+        alias update="brew update && brew upgrade"
+        ;;
+esac
+
+export N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+
+# Ensure zsh-syntax-highlighting
+source ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+source ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+
+# UV shell completion
+eval "$(uv generate-shell-completion zsh)"
+eval "$(uvx --generate-shell-completion zsh)"
