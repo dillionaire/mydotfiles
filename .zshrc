@@ -44,6 +44,7 @@ fi
 if [ -d ~/.config/fabric/patterns ] && [ "$(ls -A ~/.config/fabric/patterns)" ]; then
     for pattern_file in ~/.config/fabric/patterns/*; do
         pattern_name=$(basename "$pattern_file")
+        if [[ "$pattern_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
         unalias "$pattern_name" 2>/dev/null
         eval "
         $pattern_name() {
@@ -58,6 +59,7 @@ if [ -d ~/.config/fabric/patterns ] && [ "$(ls -A ~/.config/fabric/patterns)" ];
             fi
         }
         "
+        fi
     done
 fi
 
