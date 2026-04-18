@@ -17,4 +17,4 @@ node_modules/
 .gnupg/
 .aws/
 .netrc
-credentials*
+credentials*.claude/
