@@ -17,6 +17,9 @@ export PATH="/opt/homebrew/bin:$PATH"
 # Add local bin to PATH
 export PATH="$HOME/.local/bin:$PATH"
 
+# Cargo (Rust) bin
+export PATH="$HOME/.cargo/bin:$PATH"
+
 # Default editor
 export EDITOR="vim"
 
@@ -199,10 +202,45 @@ export N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
 eval "$(uv generate-shell-completion zsh)"
 eval "$(uvx --generate-shell-completion zsh)"
 
-# LM Studio CLI
-if [ -d "$HOME/.cache/lm-studio/bin" ]; then
-    export PATH="$PATH:$HOME/.cache/lm-studio/bin"
-fi
+# Local LLM (llama.cpp + TurboQuant + Open WebUI)
+LLAMA_CPP="$HOME/Code/llama-cpp-turboquant"
+LLAMA_MODEL="$LLAMA_CPP/models/gemma-4-26B-A4B-it-UD-Q4_K_XL.gguf"
+LLAMA_TURBO_ARGS="-ngl 99 -c 20000 -np 1 --cache-type-k turbo3 --cache-type-v turbo3"
+
+alias gchat="$LLAMA_CPP/build/bin/llama-cli -m $LLAMA_MODEL $LLAMA_TURBO_ARGS -cnv"
+
+gemma-server() {
+    echo "Starting llama-server on :8080..."
+    $LLAMA_CPP/build/bin/llama-server -m $LLAMA_MODEL $LLAMA_TURBO_ARGS --host 0.0.0.0 --port 8080 &>/tmp/llama-server.log &
+    echo "PID: $! — waiting for model to load..."
+    until curl -s http://localhost:8080/v1/models >/dev/null 2>&1; do sleep 1; done
+    echo "llama-server ready at http://localhost:8080"
+}
+
+gemma-ui() {
+    # Start server if not running
+    if ! curl -s http://localhost:8080/v1/models >/dev/null 2>&1; then
+        gemma-server
+    fi
+    echo "Starting Open WebUI on :3000..."
+    source $HOME/Code/open-webui-env/bin/activate
+    OPENAI_API_BASE_URL="http://localhost:8080/v1" \
+    OPENAI_API_KEY="none" \
+    ENABLE_OLLAMA_API=false \
+    open-webui serve --port 3000 &>/tmp/open-webui.log &
+    until curl -s -o /dev/null http://localhost:3000 2>/dev/null; do sleep 1; done
+    echo "Open WebUI ready — opening browser..."
+    open http://localhost:3000
+}
+
+gemma-stop() {
+    pkill -f "llama-server" 2>/dev/null && echo "llama-server stopped" || echo "llama-server not running"
+    pkill -f "open-webui" 2>/dev/null && echo "Open WebUI stopped" || echo "Open WebUI not running"
+}
+
+# Lemonade llama-server (launch agent)
+alias llama-chat="launchctl load ~/Library/LaunchAgents/com.llama.server.plist && echo 'llama-server starting...'"
+alias llama-stop="launchctl unload ~/Library/LaunchAgents/com.llama.server.plist && echo 'llama-server stopped'"
 
 
 # Claude CLI
@@ -221,3 +259,12 @@ fi
 
 # Starship prompt
 eval "$(starship init zsh)"
+
+# bun completions
+[ -s "/Users/thomas/.bun/_bun" ] && source "/Users/thomas/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+export PATH="$HOME/.bun/bin:$PATH"
+alias buddy-gotcha="cd ~/Code/buddy-gacha && npm start --"
