@@ -15,6 +15,14 @@ This is a personal dotfiles repository designed for quick setup on new macOS mac
 - **backup.sh** - Creates timestamped backups of dotfiles with restore capability
 - **uninstall.sh** - Removes dotfiles configuration with optional tool removal
 - **README.md** - User-facing documentation with installation instructions
+- **claude/hooks/** - Claude Code Stop hook scripts (symlinked into ~/.claude/hooks/)
+  - `codex-review.py` - Stop hook that hands off plans to Codex (read-only) for
+    review via a shared markdown file in the Obsidian vault. Git-syncs the file
+    on each verdict so both machines stay in sync. See `codex-review.README.md`.
+- **bin/** - Executables symlinked into ~/.local/bin
+  - `chonk-collab` - CLI to bootstrap/watch/end Claude ↔ Codex review sessions.
+    `chonk-collab new <name> --goal "..."` creates a vault file, wires the Stop
+    hook into the project's `.claude/settings.json`, and prints next steps.
 
 ### Directory Structure Created
 

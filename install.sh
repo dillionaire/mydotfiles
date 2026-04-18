@@ -161,6 +161,17 @@ echo "🔗 Symlinking app configs..."
 ln -sf "$DOTFILES_DIR/config/ghostty/config" "$HOME/.config/ghostty/config"
 ln -sf "$DOTFILES_DIR/config/starship.toml" "$HOME/.config/starship.toml"
 
+# Claude Code hooks + chonk-collab CLI
+echo "📁 Creating Claude hooks + bin directories..."
+mkdir -p "$HOME/.claude/hooks" "$HOME/.local/bin"
+
+echo "🔗 Symlinking Claude hooks..."
+ln -sf "$DOTFILES_DIR/claude/hooks/codex-review.py" "$HOME/.claude/hooks/codex-review.py"
+ln -sf "$DOTFILES_DIR/claude/hooks/codex-review.README.md" "$HOME/.claude/hooks/codex-review.README.md"
+
+echo "🔗 Symlinking chonk-collab CLI..."
+ln -sf "$DOTFILES_DIR/bin/chonk-collab" "$HOME/.local/bin/chonk-collab"
+
 # Summary
 echo ""
 echo "======================================"
@@ -179,3 +190,5 @@ echo "Installed components:"
 [ -L "$HOME/.zshrc" ] && progress "Dotfiles symlinked"
 [ -L "$HOME/.config/ghostty/config" ] && progress "Ghostty config"
 [ -L "$HOME/.config/starship.toml" ] && progress "Starship config"
+[ -L "$HOME/.claude/hooks/codex-review.py" ] && progress "Claude codex-review hook"
+[ -L "$HOME/.local/bin/chonk-collab" ] && progress "chonk-collab CLI"
