@@ -1,194 +1,96 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# ------------------------------------------------------------
-# Run the script with:
-# chmod +x install.sh
-# ./install.sh [--skip-existing]
-# ------------------------------------------------------------
+set -euo pipefail
 
-set -e
+DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LINKS_ONLY=false
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-NC='\033[0m' # No Color
-
-# Parse arguments
-SKIP_EXISTING=false
-for arg in "$@"; do
-    case $arg in
-        --skip-existing)
-            SKIP_EXISTING=true
-            ;;
-    esac
-done
-
-# Validate macOS version
-if [[ ! "$OSTYPE" == "darwin"* ]]; then
-    echo -e "${RED}❌ This script is designed for macOS only${NC}"
-    exit 1
+if [[ "${1:-}" == "--links-only" ]]; then
+  LINKS_ONLY=true
+elif [[ $# -gt 0 ]]; then
+  echo "Usage: $0 [--links-only]" >&2
+  exit 2
 fi
 
-DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
+info() { printf '\033[32m✓\033[0m %s\n' "$1"; }
+warn() { printf '\033[33m!\033[0m %s\n' "$1"; }
 
-# Progress indicator
-progress() {
-    echo -e "${GREEN}✓${NC} $1"
-}
-
-error() {
-    echo -e "${RED}❌ $1${NC}"
-}
-
-warning() {
-    echo -e "${YELLOW}⚠️  $1${NC}"
-}
-
-echo "🚀 Starting dotfiles installation..."
-echo "Options: skip-existing=$SKIP_EXISTING"
-
-# Install Xcode Command Line Tools if needed
-if ! xcode-select -p &> /dev/null; then
-    echo "📦 Installing Xcode Command Line Tools..."
-    xcode-select --install
-    echo "⏳ Please wait for Xcode Command Line Tools to install and press any key to continue..."
-    read -n 1
-    
-    # Verify installation
-    if ! xcode-select -p &> /dev/null; then
-        error "Xcode Command Line Tools installation failed"
+install_packages() {
+  case "$(uname -s)" in
+    Darwin)
+      if ! command -v brew >/dev/null 2>&1; then
+        echo "Homebrew is required. Install it from https://brew.sh, then rerun this script." >&2
         exit 1
+      fi
+      brew install git zsh starship fzf zoxide eza bat
+      ;;
+    Linux)
+      if command -v apt-get >/dev/null 2>&1; then
+        sudo apt-get update
+        sudo apt-get install -y git zsh curl fzf zoxide eza bat
+      else
+        warn "Unsupported Linux package manager; install git, zsh, curl, fzf, zoxide, eza, bat, and Starship manually."
+      fi
+      if ! command -v starship >/dev/null 2>&1; then
+        mkdir -p "$HOME/.local/bin"
+        curl -fsSL https://starship.rs/install.sh | sh -s -- --yes --bin-dir "$HOME/.local/bin"
+      fi
+      ;;
+    *)
+      warn "Unsupported OS; skipping package installation."
+      ;;
+  esac
+}
+
+clone_if_missing() {
+  local repository="$1"
+  local destination="$2"
+  if [[ ! -d "$destination/.git" ]]; then
+    git clone --depth 1 "$repository" "$destination"
+  fi
+}
+
+install_shell_extensions() {
+  if [[ ! -d "$HOME/.oh-my-zsh" ]]; then
+    RUNZSH=no CHSH=no KEEP_ZSHRC=yes sh -c       "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+  fi
+
+  local custom="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
+  mkdir -p "$custom/plugins"
+  clone_if_missing https://github.com/zsh-users/zsh-autosuggestions     "$custom/plugins/zsh-autosuggestions"
+  clone_if_missing https://github.com/zsh-users/zsh-completions     "$custom/plugins/zsh-completions"
+  clone_if_missing https://github.com/zdharma-continuum/fast-syntax-highlighting     "$custom/plugins/fast-syntax-highlighting"
+}
+
+link_file() {
+  local source="$1"
+  local target="$2"
+  mkdir -p "$(dirname "$target")"
+
+  if [[ -e "$target" || -L "$target" ]]; then
+    if [[ -L "$target" && "$(readlink "$target")" == "$source" ]]; then
+      info "$target already linked"
+      return
     fi
-    progress "Xcode Command Line Tools installed"
-else
-    progress "Xcode Command Line Tools already installed"
+    local backup="${target}.backup.$(date +%Y%m%d_%H%M%S)"
+    mv "$target" "$backup"
+    warn "Backed up $target to $backup"
+  fi
+
+  ln -s "$source" "$target"
+  info "Linked $target"
+}
+
+if [[ "$LINKS_ONLY" == false ]]; then
+  install_packages
+  install_shell_extensions
 fi
 
-# Install Homebrew if needed
-if ! command -v brew &> /dev/null; then
-    if [ "$SKIP_EXISTING" = true ]; then
-        warning "Homebrew not installed, skipping (--skip-existing flag)"
-    else
-        echo "🍺 Installing Homebrew..."
-        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || {
-            error "Homebrew installation failed"
-            exit 1
-        }
+link_file "$DOTFILES_DIR/.zshrc" "$HOME/.zshrc"
+link_file "$DOTFILES_DIR/.zprofile" "$HOME/.zprofile"
+link_file "$DOTFILES_DIR/.zshenv" "$HOME/.zshenv"
+link_file "$DOTFILES_DIR/config/starship.toml" "$HOME/.config/starship.toml"
+link_file "$DOTFILES_DIR/config/ghostty/config" "$HOME/.config/ghostty/config"
 
-        echo "🔄 Configuring Homebrew for Apple Silicon..."
-        if [[ -f "/opt/homebrew/bin/brew" ]]; then
-            echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> $HOME/.zprofile
-            eval "$(/opt/homebrew/bin/brew shellenv)"
-        elif [[ -f "/usr/local/bin/brew" ]]; then
-            echo 'eval "$(/usr/local/bin/brew shellenv)"' >> $HOME/.zprofile
-            eval "$(/usr/local/bin/brew shellenv)"
-        fi
-
-        # Verify Homebrew installation and PATH
-        if ! command -v brew &> /dev/null; then
-            error "Homebrew installation failed or PATH not set correctly"
-            echo "Manual step needed: restart your terminal or run:"
-            echo 'eval "$(/opt/homebrew/bin/brew shellenv)"'
-            exit 1
-        fi
-
-        progress "Homebrew installed and configured"
-    fi
-else
-    progress "Homebrew already installed"
-fi
-
-# Install Oh My Zsh if needed
-if [ ! -d "$HOME/.oh-my-zsh" ]; then
-    echo "💻 Installing Oh My Zsh..."
-    RUNZSH=no CHSH=no sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" || {
-        error "Oh My Zsh installation failed"
-        exit 1
-    }
-    progress "Oh My Zsh installed"
-else
-    progress "Oh My Zsh already installed"
-fi
-
-# Install Oh My Zsh plugins
-ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
-
-# Install zsh-autosuggestions
-if [ ! -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ]; then
-    echo "🔌 Installing zsh-autosuggestions..."
-        git clone https://github.com/zsh-users/zsh-autosuggestions "${ZSH_CUSTOM}/plugins/zsh-autosuggestions" || {
-        error "zsh-autosuggestions installation failed"
-        warning "You can install it manually later"
-    }
-    progress "zsh-autosuggestions installed"
-else
-    progress "zsh-autosuggestions already installed"
-fi
-
-# Install zsh-syntax-highlighting
-if [ ! -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ]; then
-    echo "🎨 Installing zsh-syntax-highlighting..."
-        git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "${ZSH_CUSTOM}/plugins/zsh-syntax-highlighting" || {
-        error "zsh-syntax-highlighting installation failed"
-        warning "You can install it manually later"
-    }
-    progress "zsh-syntax-highlighting installed"
-else
-    progress "zsh-syntax-highlighting already installed"
-fi
-
-# Create necessary directories
-echo "📁 Creating necessary directories..."
-mkdir -p "$HOME/Code/obsidian"
-
-# Backup existing .zshrc if it exists and is not a symlink
-if [ -f "$HOME/.zshrc" ] && [ ! -L "$HOME/.zshrc" ]; then
-    echo "💾 Backing up existing .zshrc..."
-    mv "$HOME/.zshrc" "$HOME/.zshrc.backup.$(date +%Y%m%d_%H%M%S)"
-fi
-
-# Symlink dotfiles
-echo "🔗 Creating symlinks..."
-ln -sf "$DOTFILES_DIR/.zshrc" "$HOME/.zshrc"
-
-# Create .config directory for app configs
-echo "📁 Creating app config directories..."
-mkdir -p "$HOME/.config/ghostty"
-
-# Symlink app configs
-echo "🔗 Symlinking app configs..."
-ln -sf "$DOTFILES_DIR/config/ghostty/config" "$HOME/.config/ghostty/config"
-ln -sf "$DOTFILES_DIR/config/starship.toml" "$HOME/.config/starship.toml"
-
-# Claude Code hooks + chonk-collab CLI
-echo "📁 Creating Claude hooks + bin directories..."
-mkdir -p "$HOME/.claude/hooks" "$HOME/.local/bin"
-
-echo "🔗 Symlinking Claude hooks..."
-ln -sf "$DOTFILES_DIR/claude/hooks/codex-review.py" "$HOME/.claude/hooks/codex-review.py"
-ln -sf "$DOTFILES_DIR/claude/hooks/codex-review.README.md" "$HOME/.claude/hooks/codex-review.README.md"
-
-echo "🔗 Symlinking chonk-collab CLI..."
-ln -sf "$DOTFILES_DIR/bin/chonk-collab" "$HOME/.local/bin/chonk-collab"
-
-# Summary
-echo ""
-echo "======================================"
-echo "✨ Installation complete!"
-echo "======================================"
-echo ""
-echo "Next steps:"
-echo "1. Restart your terminal or run: source ~/.zshrc"
-echo "2. Verify installation with: zshconfig"
-echo ""
-echo "Installed components:"
-[ -x "$(command -v brew)" ] && progress "Homebrew"
-[ -d "$HOME/.oh-my-zsh" ] && progress "Oh My Zsh"
-[ -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ] && progress "zsh-autosuggestions"
-[ -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ] && progress "zsh-syntax-highlighting"
-[ -L "$HOME/.zshrc" ] && progress "Dotfiles symlinked"
-[ -L "$HOME/.config/ghostty/config" ] && progress "Ghostty config"
-[ -L "$HOME/.config/starship.toml" ] && progress "Starship config"
-[ -L "$HOME/.claude/hooks/codex-review.py" ] && progress "Claude codex-review hook"
-[ -L "$HOME/.local/bin/chonk-collab" ] && progress "chonk-collab CLI"
+echo
+echo "Dotfiles installed. Start a new Zsh session with: exec zsh"
