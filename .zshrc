@@ -1,30 +1,46 @@
 # Path to your Oh My Zsh installation
 export ZSH="$HOME/.oh-my-zsh"
 
+# Command paths must be available before plugin selection.
+export PATH="/opt/homebrew/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/.cargo/bin:$PATH"
+PATH=$(echo "$PATH" | awk -v RS=: -v ORS=: '!a[$1]++' | sed 's/:$//')
+
 # Theme for Oh My Zsh
-# Theme disabled — using Starship prompt instead
+# Theme disabled - using Starship prompt instead
 ZSH_THEME=""
 
-# Plugins
-plugins=(git vscode z zsh-autosuggestions fast-syntax-highlighting)
+# History shared by zsh, autosuggestions, and fzf.
+export HISTFILE="${HISTFILE:-$HOME/.zsh_history}"
+HISTSIZE=100000
+SAVEHIST=100000
+setopt APPEND_HISTORY
+setopt EXTENDED_HISTORY
+setopt INC_APPEND_HISTORY
+setopt SHARE_HISTORY
+setopt HIST_IGNORE_DUPS
+setopt HIST_REDUCE_BLANKS
+setopt HIST_VERIFY
+
+# Keep the Oh My Zsh z plugin as a fallback until zoxide is available.
+plugins=(git vscode zsh-autosuggestions fast-syntax-highlighting)
+(( $+commands[zoxide] )) || plugins+=(z)
 
 # Load Oh My Zsh
 source "$ZSH/oh-my-zsh.sh"
 
-# Load homebrew path
-export PATH="/opt/homebrew/bin:$PATH"
-
-# Add local bin to PATH
-export PATH="$HOME/.local/bin:$PATH"
-
-# Cargo (Rust) bin
-export PATH="$HOME/.cargo/bin:$PATH"
+# Expanded, forgiving Tab completion.
+zstyle ':completion:*' menu select
+zstyle ':completion:*' matcher-list \
+    'm:{a-zA-Z}={A-Za-z}' \
+    'r:|[._-]=** r:|=**' \
+    'l:|=* r:|=*'
+zstyle ':completion:*' group-name ''
+zstyle ':completion:*:descriptions' format '%F{blue}%B%d%b%f'
 
 # Default editor
 export EDITOR="vim"
-
-# Avoid duplicate PATH entries
-PATH=$(echo "$PATH" | awk -v RS=: -v ORS=: '!a[$1]++' | sed 's/:$//')
 
 # Lazy load NVM for faster shell startup
 export NVM_DIR="$HOME/.nvm"
@@ -94,10 +110,20 @@ yt() {
 
 # Basic aliases
 alias zshconfig="$EDITOR ~/.zshrc"
-alias zshreload="source ~/.zshrc && echo '✅ ZSH config reloaded'"
-alias ll="ls -la"
-alias la="ls -A"
-alias l="ls -CF"
+alias zshreload="source ~/.zshrc && echo 'Zsh config reloaded'"
+
+# Prefer eza for listings, with portable fallbacks on machines without it.
+if (( $+commands[eza] )); then
+    alias ls='eza --icons=auto --group-directories-first'
+    alias ll='eza -lh --icons=auto --group-directories-first --git'
+    alias la='eza -lah --icons=auto --group-directories-first --git'
+    alias l='eza -1 --icons=auto --group-directories-first'
+    alias lt='eza --tree --level=2 --icons=auto --group-directories-first'
+else
+    alias ll='ls -la'
+    alias la='ls -A'
+    alias l='ls -CF'
+fi
 
 # Colored grep
 alias grep='grep --color=auto'
@@ -202,45 +228,22 @@ export N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
 eval "$(uv generate-shell-completion zsh)"
 eval "$(uvx --generate-shell-completion zsh)"
 
-# Local LLM (llama.cpp + TurboQuant + Open WebUI)
-LLAMA_CPP="$HOME/Code/llama-cpp-turboquant"
-LLAMA_MODEL="$LLAMA_CPP/models/gemma-4-26B-A4B-it-UD-Q4_K_XL.gguf"
-LLAMA_TURBO_ARGS="-ngl 99 -c 20000 -np 1 --cache-type-k turbo3 --cache-type-v turbo3"
-
-alias gchat="$LLAMA_CPP/build/bin/llama-cli -m $LLAMA_MODEL $LLAMA_TURBO_ARGS -cnv"
-
-gemma-server() {
-    echo "Starting llama-server on :8080..."
-    $LLAMA_CPP/build/bin/llama-server -m $LLAMA_MODEL $LLAMA_TURBO_ARGS --host 0.0.0.0 --port 8080 &>/tmp/llama-server.log &
-    echo "PID: $! — waiting for model to load..."
-    until curl -s http://localhost:8080/v1/models >/dev/null 2>&1; do sleep 1; done
-    echo "llama-server ready at http://localhost:8080"
-}
-
-gemma-ui() {
-    # Start server if not running
-    if ! curl -s http://localhost:8080/v1/models >/dev/null 2>&1; then
-        gemma-server
+# Interactive navigation, fuzzy history/completion, and prompt integrations.
+if [[ -o interactive ]]; then
+    if (( $+commands[zoxide] )); then
+        eval "$(zoxide init zsh)"
     fi
-    echo "Starting Open WebUI on :3000..."
-    source $HOME/Code/open-webui-env/bin/activate
-    OPENAI_API_BASE_URL="http://localhost:8080/v1" \
-    OPENAI_API_KEY="none" \
-    ENABLE_OLLAMA_API=false \
-    open-webui serve --port 3000 &>/tmp/open-webui.log &
-    until curl -s -o /dev/null http://localhost:3000 2>/dev/null; do sleep 1; done
-    echo "Open WebUI ready — opening browser..."
-    open http://localhost:3000
-}
 
-gemma-stop() {
-    pkill -f "llama-server" 2>/dev/null && echo "llama-server stopped" || echo "llama-server not running"
-    pkill -f "open-webui" 2>/dev/null && echo "Open WebUI stopped" || echo "Open WebUI not running"
-}
+    if (( $+commands[fzf] )) && [[ -t 0 && -o zle ]]; then
+        export FZF_DEFAULT_OPTS='--height=45% --layout=reverse --border --info=inline'
+        source <(fzf --zsh)
+    fi
 
-# Lemonade llama-server (launch agent)
-alias llama-chat="launchctl load ~/Library/LaunchAgents/com.llama.server.plist && echo 'llama-server starting...'"
-alias llama-stop="launchctl unload ~/Library/LaunchAgents/com.llama.server.plist && echo 'llama-server stopped'"
+    if (( $+commands[starship] )); then
+        eval "$(starship init zsh)"
+    fi
+fi
+
 
 
 # Claude CLI

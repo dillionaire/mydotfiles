@@ -1,7 +1,5 @@
-# Font
-font-family = MesloLGS Nerd Font
+# Font - Ghostty's embedded JetBrains Mono with built-in Nerd Font symbols
 font-size = 14
-
 
 # Theme - Catppuccin Mocha (easy on the eyes, great contrast)
 theme = Catppuccin Mocha
@@ -20,3 +18,11 @@ cursor-style-blink = true
 
 # macOS specific
 macos-option-as-alt = true
+
+
+# Path to the background image
+background-image = /Users/thomas/Downloads/1ab701e9-3e64-4973-9ea0-618306b42fe4.jpg
+
+# Optional: Adjust the opacity so you can still read text clearly
+background-opacity = 0.85
+background-blur-radius = 40
