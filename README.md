@@ -1,140 +1,63 @@
 # Dotfiles
 
-Personal dotfiles configuration for quick setup on new macOS machines.
+Personal Zsh, Starship, Ghostty, and kitty configuration for Ubuntu and macOS.
 
-## System Requirements
+## Included
 
-- macOS (optimized for Apple Silicon)
-- Git (for cloning the repository)
-- Terminal access
+- Zsh configuration, history behavior, aliases, and key bindings
+- Oh My Zsh with autosuggestions, completions, history search, and syntax highlighting
+- Starship prompt configuration
+- Ghostty terminal configuration
+- kitty terminal configuration (`config/kitty/`): JetBrainsMono Nerd Font Mono,
+  Catppuccin Mocha, splits layout, macOS cmd-key bindings. Change the theme with
+  `kitten themes`.
+- Claude Code tooling: a Stop hook that hands plans to Codex for review
+  (`claude/hooks/`) and the `chonk-collab` CLI that drives those sessions (`bin/`).
+  See `CLAUDE.md`.
+- Optional installation of the command-line tools used by the configuration
 
-## Prerequisites
+Shell history, credentials, SSH keys, and machine secrets are intentionally not tracked.
+Put one-machine-only shell settings in `~/.zshrc.local` and environment values in
+`~/.zshenv.local`; both are loaded when present and ignored by Git.
 
-The installation script will automatically install:
-- Xcode Command Line Tools
-- Homebrew
-- Oh My Zsh with custom plugins
-  - zsh-autosuggestions
-  - zsh-syntax-highlighting
+## Install on a new computer
 
-## Quick Start
-
-```bash
-# Clone the repository
-mkdir -p ~/Code
+```sh
 git clone https://github.com/dillionaire/mydotfiles.git ~/Code/dotfiles
 cd ~/Code/dotfiles
-
-# Run the installation script
-chmod +x install.sh
 ./install.sh
-
-# Or skip already installed components
-./install.sh --skip-existing
-
-# After installation, restart your terminal
-source ~/.zshrc
+exec zsh
 ```
 
-## What's Included
+Any clone location works; the scripts resolve their own directory. On macOS,
+install [Homebrew](https://brew.sh) first; the installer then adds the tools and
+the JetBrainsMono Nerd Font. On Ubuntu, the installer uses `apt` and may ask for
+your sudo password. To create only the configuration symlinks without installing
+software:
 
-- `.zshrc` with Oh My Zsh configuration
-- Custom Oh My Zsh plugins (zsh-autosuggestions, zsh-syntax-highlighting)
-- Git aliases and helpful shell functions
-- Performance optimizations (lazy NVM loading)
-- kitty terminal config (`config/kitty/`): JetBrainsMono Nerd Font, Catppuccin Mocha, splits layout, macOS cmd-key bindings
-- Ghostty and Starship configs (`config/`)
-- Automatic backup of existing configurations
-- Backup/restore functionality
-- Uninstall script
-
-## Features
-
-- **Organized Structure**: All development files in `~/Code`
-- **Automated Setup**: One-command installation
-- **Flexible Configuration**: Easy to customize
-- **Backup System**: Automatic backup of existing files
-- **Apple Silicon Optimized**: Specifically configured for M-series Macs
-
-## Installation Details
-
-The installation script:
-1. Checks for and installs Xcode Command Line Tools
-2. Installs Homebrew (with proper PATH configuration for Apple Silicon)
-3. Installs Oh My Zsh with custom plugins
-4. Creates necessary directory structure
-5. Backs up existing configurations
-6. Sets up symlinks for dotfiles
-
-If any step fails, the script will provide clear error messages and instructions for manual intervention.
-
-## Manual Steps After Installation
-
-1. **Fabric**:
-   - Install Fabric
-   - Configure patterns in `~/.config/fabric/patterns`
-
-2. **Obsidian**:
-   - Set up vaults
-   - Configure plugins
-
-## Troubleshooting
-
-If the installation stalls:
-1. Run the script in debug mode: `bash -x install.sh`
-2. Check Homebrew installation: `which brew`
-3. Verify PATH setup: `echo $PATH`
-4. Check Oh My Zsh installation: `echo $ZSH`
-
-## Backup and Restore
-
-### Creating a Backup
-
-Before making changes or installing, create a backup:
-
-```bash
-./backup.sh
+```sh
+./install.sh --links-only
 ```
 
-Backups are stored in `~/.dotfiles_backup/` with timestamps. Only the last 5 backups are kept.
+Existing target files are renamed with a timestamp before links are created.
 
-### Restoring from Backup
+## Keep machines synchronized
 
-To restore a previous configuration:
+Because the installed files are symlinks into this repository, edit them normally,
+then commit and push:
 
-```bash
-~/.dotfiles_backup/[timestamp]/restore.sh
+```sh
+git add -A
+git commit -m "Update shell configuration"
+git push
 ```
 
-## Updating
+On another computer:
 
-To update your dotfiles:
-
-```bash
-cd ~/Code/dotfiles
-git pull
-./install.sh --skip-existing  # Skip reinstalling existing tools
+```sh
+git pull --ff-only
+./install.sh --links-only   # picks up any newly added config files
 ```
 
-## Uninstalling
-
-To remove the dotfiles configuration:
-
-```bash
-# Remove only dotfile symlinks
-./uninstall.sh
-
-# Remove dotfiles and all installed tools
-./uninstall.sh --remove-tools
-```
-
-## Directory Structure
-
-```
-~/Code/
-├── dotfiles/        # This repository
-└── obsidian/        # Obsidian vaults
-
-~/.dotfiles_backup/  # Automatic backups
-└── [timestamp]/     # Backup with restore script
-```
+Run `./backup.sh` for a focused backup or `./uninstall.sh` to remove only the
+symlinks managed by this repository.

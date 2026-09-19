@@ -1,145 +1,82 @@
-# Path to your Oh My Zsh installation
+# A small Oh My Zsh setup; Starship owns the prompt.
 export ZSH="$HOME/.oh-my-zsh"
-
-# Command paths must be available before plugin selection.
-export PATH="/opt/homebrew/bin:$PATH"
-export PATH="$HOME/.local/bin:$PATH"
-export PATH="$HOME/.cargo/bin:$PATH"
-PATH=$(echo "$PATH" | awk -v RS=: -v ORS=: '!a[$1]++' | sed 's/:$//')
-
-# Theme for Oh My Zsh
-# Theme disabled - using Starship prompt instead
 ZSH_THEME=""
+DISABLE_AUTO_TITLE="true"
+HYPHEN_INSENSITIVE="true"
 
-# History shared by zsh, autosuggestions, and fzf.
-export HISTFILE="${HISTFILE:-$HOME/.zsh_history}"
-HISTSIZE=100000
-SAVEHIST=100000
+# History shared across sessions.
+HISTFILE="$HOME/.zsh_history"
+HISTSIZE=50000
+SAVEHIST=50000
 setopt APPEND_HISTORY
 setopt EXTENDED_HISTORY
 setopt INC_APPEND_HISTORY
 setopt SHARE_HISTORY
-setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_ALL_DUPS
 setopt HIST_REDUCE_BLANKS
 setopt HIST_VERIFY
 
-# Keep the Oh My Zsh z plugin as a fallback until zoxide is available.
-plugins=(git vscode zsh-autosuggestions fast-syntax-highlighting)
-(( $+commands[zoxide] )) || plugins+=(z)
-
-# Load Oh My Zsh
-source "$ZSH/oh-my-zsh.sh"
-
-# Expanded, forgiving Tab completion.
+# Load additional completion definitions before Oh My Zsh initializes compinit.
+fpath=("$ZSH/custom/plugins/zsh-completions/src" $fpath)
 zstyle ':completion:*' menu select
 zstyle ':completion:*' matcher-list \
-    'm:{a-zA-Z}={A-Za-z}' \
-    'r:|[._-]=** r:|=**' \
-    'l:|=* r:|=*'
+  'm:{a-zA-Z}={A-Za-z}' \
+  'r:|[._-]=* r:|=*'
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
 zstyle ':completion:*' group-name ''
 zstyle ':completion:*:descriptions' format '%F{blue}%B%d%b%f'
 
-# Default editor
+# Visible in dark terminal themes and accepted with Right Arrow or End.
+ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=#6c7086'
+ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=80
+
+plugins=(
+  git
+  fzf
+  colored-man-pages
+  extract
+  command-not-found
+  sudo
+  zsh-autosuggestions
+  history-substring-search
+  fast-syntax-highlighting
+)
+
+source "$ZSH/oh-my-zsh.sh"
+
+# Fast navigation: `z fragment` jumps to a frequently used directory.
+if (( $+commands[zoxide] )); then
+  eval "$(zoxide init zsh)"
+fi
+
+# Modern, icon-aware listings (Ghostty/kitty supply Nerd Font glyph support).
+if (( $+commands[eza] )); then
+  alias ls='eza --icons=auto --group-directories-first'
+  alias ll='eza --long --all --git --icons=auto --group-directories-first'
+  alias la='eza --all --icons=auto --group-directories-first'
+  alias l='eza --long --icons=auto --group-directories-first'
+  alias lt='eza --tree --level=2 --icons=auto --group-directories-first'
+fi
+if (( $+commands[batcat] )); then
+  alias bat='batcat'
+fi
+
+# Keep standard Emacs-style editing and add intuitive history search.
+bindkey -e
+bindkey '^[[A' history-substring-search-up
+bindkey '^[[B' history-substring-search-down
+
 export EDITOR="vim"
 
-# Lazy load NVM for faster shell startup
-export NVM_DIR="$HOME/.nvm"
-
-_load_nvm() {
-    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-}
-
-nvm() {
-    _load_nvm
-    unset -f nvm
-    command nvm "$@"
-}
-
-node() {
-    _load_nvm
-    unset -f node
-    command node "$@"
-}
-
-npm() {
-    _load_nvm
-    unset -f npm
-    command npm "$@"
-}
-
-npx() {
-    _load_nvm
-    unset -f npx
-    command npx "$@"
-}
-
-# Base directory for Obsidian notes
-obsidian_base="${OBSIDIAN_BASE:-$HOME/Code/obsidian}"
-
-# Dynamically define functions based on pattern files in a specific directory
-if [ -d ~/.config/fabric/patterns ] && [ "$(ls -A ~/.config/fabric/patterns)" ]; then
-    for pattern_file in ~/.config/fabric/patterns/*; do
-        pattern_name=$(basename "$pattern_file")
-        if [[ "$pattern_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-        unalias "$pattern_name" 2>/dev/null
-        eval "
-        $pattern_name() {
-            local title=\$1
-            local date_stamp=\$(date +'%Y-%m-%d')
-            local output_path=\"\$obsidian_base/\${date_stamp}-\${title}.md\"
-
-            if [ -n \"\$title\" ]; then
-                fabric --pattern \"$pattern_name\" -o \"\$output_path\"
-            else
-                fabric --pattern \"$pattern_name\" --stream
-            fi
-        }
-        "
-        fi
-    done
-fi
-
-# Define a shortcut for fabric commands with YouTube links
-yt() {
-    local video_link="$1"
-    fabric -y "$video_link" --transcript
-}
-
-# ==================== ALIASES ====================
-
-# Basic aliases
+# Everyday aliases.
 alias zshconfig="$EDITOR ~/.zshrc"
 alias zshreload="source ~/.zshrc && echo 'Zsh config reloaded'"
-
-# Prefer eza for listings, with portable fallbacks on machines without it.
-if (( $+commands[eza] )); then
-    alias ls='eza --icons=auto --group-directories-first'
-    alias ll='eza -lh --icons=auto --group-directories-first --git'
-    alias la='eza -lah --icons=auto --group-directories-first --git'
-    alias l='eza -1 --icons=auto --group-directories-first'
-    alias lt='eza --tree --level=2 --icons=auto --group-directories-first'
-else
-    alias ll='ls -la'
-    alias la='ls -A'
-    alias l='ls -CF'
-fi
-
-# Colored grep
 alias grep='grep --color=auto'
-alias fgrep='fgrep --color=auto'
-alias egrep='egrep --color=auto'
-
-# Enable aliases to be sudo'ed
-alias sudo='sudo '
-
-# Directory navigation
 alias ..="cd .."
 alias ...="cd ../.."
 alias ....="cd ../../.."
 alias -- -="cd -"
-
-# Git aliases
 alias gs="git status"
 alias ga="git add"
 alias gc="git commit"
@@ -152,123 +89,97 @@ alias gpl="git pull"
 alias gm="git merge"
 alias gst="git stash"
 alias gstp="git stash pop"
+(( $+commands[cursor] )) && alias c="cursor ."
 
-# Cursor AI
-alias c="cursor ."
+# Small helpers.
+mkcd() { mkdir -p "$1" && cd "$1"; }
 
-# OS-specific aliases
-case "$(uname)" in
-    Linux)
-        alias update="sudo apt update && sudo apt upgrade -y"
-        ;;
-    Darwin)
-        alias update="brew update && brew upgrade"
-        alias showfiles="defaults write com.apple.finder AppleShowAllFiles -bool true && killall Finder"
-        alias hidefiles="defaults write com.apple.finder AppleShowAllFiles -bool false && killall Finder"
-        ;;
-esac
-
-# ==================== FUNCTIONS ====================
-
-# Create directory and cd into it
-mkcd() {
-    mkdir -p "$1" && cd "$1"
-}
-
-# Quick backup function
 backup() {
-    if [ -z "$1" ]; then
-        echo "Usage: backup <file>"
-        return 1
-    fi
-    cp "$1" "$1.backup.$(date +%Y%m%d_%H%M%S)"
-    echo "✅ Backed up $1"
+  if [[ -z "$1" ]]; then
+    echo "Usage: backup <file>"
+    return 1
+  fi
+  cp "$1" "$1.backup.$(date +%Y%m%d_%H%M%S)" && echo "Backed up $1"
 }
 
-# Extract archives
-extract() {
-    if [ -f "$1" ]; then
-        case "$1" in
-            *.tar.bz2) tar xjf "$1" ;;
-            *.tar.gz)  tar xzf "$1" ;;
-            *.bz2)     bunzip2 "$1" ;;
-            *.rar)     unrar x "$1" ;;
-            *.gz)      gunzip "$1" ;;
-            *.tar)     tar xf "$1" ;;
-            *.tbz2)    tar xjf "$1" ;;
-            *.tgz)     tar xzf "$1" ;;
-            *.zip)     unzip "$1" ;;
-            *.Z)       uncompress "$1" ;;
-            *.7z)      7z x "$1" ;;
-            *) echo "'$1' cannot be extracted via extract()" ;;
-        esac
-    else
-        echo "'$1' is not a valid file"
-    fi
-}
-
-# Find text in files (uses ripgrep)
 findtext() {
-    if [ -z "$1" ]; then
-        echo "Usage: findtext <text> [path]"
-        return 1
-    fi
-    rg "$1" "${2:-.}"
+  if [[ -z "$1" ]]; then
+    echo "Usage: findtext <text> [path]"
+    return 1
+  fi
+  rg "$1" "${2:-.}"
 }
+
+# Lazy-load NVM so shell startup stays fast.
+export NVM_DIR="$HOME/.nvm"
+_load_nvm() {
+  [[ -s "$NVM_DIR/nvm.sh" ]] && \. "$NVM_DIR/nvm.sh"
+  [[ -s "$NVM_DIR/bash_completion" ]] && \. "$NVM_DIR/bash_completion"
+}
+for _cmd in nvm node npm npx; do
+  eval "$_cmd() { _load_nvm; unset -f nvm node npm npx; command $_cmd \"\$@\"; }"
+done
+unset _cmd
+
+# uv / uvx completions when installed.
+if (( $+commands[uv] )); then
+  eval "$(uv generate-shell-completion zsh)"
+  eval "$(uvx --generate-shell-completion zsh)"
+fi
+
+# Fabric patterns as shell functions (writes to the Obsidian vault when given a title).
+obsidian_base="${OBSIDIAN_BASE:-$HOME/Code/obsidian}"
+if [[ -d ~/.config/fabric/patterns ]] && [[ -n "$(ls -A ~/.config/fabric/patterns)" ]]; then
+  for pattern_file in ~/.config/fabric/patterns/*; do
+    pattern_name=$(basename "$pattern_file")
+    if [[ "$pattern_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+      unalias "$pattern_name" 2>/dev/null
+      eval "
+      $pattern_name() {
+        local title=\$1
+        local date_stamp=\$(date +'%Y-%m-%d')
+        local output_path=\"\$obsidian_base/\${date_stamp}-\${title}.md\"
+        if [ -n \"\$title\" ]; then
+          fabric --pattern \"$pattern_name\" -o \"\$output_path\"
+        else
+          fabric --pattern \"$pattern_name\" --stream
+        fi
+      }
+      "
+    fi
+  done
+fi
+yt() { fabric -y "$1" --transcript; }
 
 export N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
 
-# Profile ZSH startup time (uncomment for debugging)
-# zmodload zsh/zprof
-# source $ZSH/oh-my-zsh.sh
-# zprof
-
-# These plugins are already loaded by Oh My Zsh, no need to source again
-
-eval "$(uv generate-shell-completion zsh)"
-eval "$(uvx --generate-shell-completion zsh)"
-
-# Interactive navigation, fuzzy history/completion, and prompt integrations.
-if [[ -o interactive ]]; then
-    if (( $+commands[zoxide] )); then
-        eval "$(zoxide init zsh)"
-    fi
-
-    if (( $+commands[fzf] )) && [[ -t 0 && -o zle ]]; then
-        export FZF_DEFAULT_OPTS='--height=45% --layout=reverse --border --info=inline'
-        source <(fzf --zsh)
-    fi
-
-    if (( $+commands[starship] )); then
-        eval "$(starship init zsh)"
-    fi
+# kitty terminal: kittens are only useful inside kitty itself.
+if [[ "$TERM" == "xterm-kitty" ]]; then
+  alias ssh="kitten ssh"      # copies terminfo to the remote host automatically
+  alias icat="kitten icat"    # inline images
+  alias kdiff="kitten diff"   # side-by-side diff with images
 fi
 
-
-
-# Claude CLI
-if [ -x "$HOME/.claude/local/claude" ]; then
-    alias claude="_load_nvm && $HOME/.claude/local/claude"
-fi
-
-# Tailscale
-if [ -x "/Applications/Tailscale.app/Contents/MacOS/Tailscale" ]; then
-    alias tailscale="/Applications/Tailscale.app/Contents/MacOS/Tailscale"
-fi
-
-if [[ -o interactive ]]; then
+# macOS-only conveniences.
+if [[ "$OSTYPE" == darwin* ]]; then
+  alias update="brew update && brew upgrade"
+  alias showfiles="defaults write com.apple.finder AppleShowAllFiles -bool true && killall Finder"
+  alias hidefiles="defaults write com.apple.finder AppleShowAllFiles -bool false && killall Finder"
+  [[ -x "$HOME/.claude/local/claude" ]] && alias claude="_load_nvm && $HOME/.claude/local/claude"
+  [[ -x "/Applications/Tailscale.app/Contents/MacOS/Tailscale" ]] && alias tailscale="/Applications/Tailscale.app/Contents/MacOS/Tailscale"
+  # Chonk API key lives in the login Keychain, never in a file.
+  if [[ -o interactive ]]; then
     chonk_key="$(security find-generic-password -a "$USER" -s CHONK_API_KEY -w 2>/dev/null)"
     [[ -n "$chonk_key" ]] && export CHONK_API_KEY="$chonk_key"
     unset chonk_key
+  fi
+else
+  alias update="sudo apt update && sudo apt upgrade -y"
 fi
 
-
-# kitty terminal: kittens are only useful inside kitty itself.
-if [[ "$TERM" == "xterm-kitty" ]]; then
-    alias ssh="kitten ssh"      # copies terminfo to the remote host automatically
-    alias icat="kitten icat"    # inline images
-    alias kdiff="kitten diff"   # side-by-side diff with images
+if (( $+commands[starship] )); then
+  eval "$(starship init zsh)"
 fi
 
-# User-local command-line tools
-export PATH="/Users/thomas/.local/bin:$PATH"
+# Optional settings that should stay on one machine.
+[[ -r "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
