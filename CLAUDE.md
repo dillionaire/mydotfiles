@@ -15,6 +15,8 @@ This is a personal dotfiles repository designed for quick setup on new macOS mac
 - **backup.sh** - Creates timestamped backups of dotfiles with restore capability
 - **uninstall.sh** - Removes dotfiles configuration with optional tool removal
 - **README.md** - User-facing documentation with installation instructions
+- **config/kitty/** - kitty terminal config (`kitty.conf` + `current-theme.conf`, symlinked into ~/.config/kitty/). Tuned for the M4 Pro MacBook: JetBrainsMono Nerd Font Mono, Catppuccin Mocha, 120 Hz repaint, splits layout, cmd-key bindings. Change theme with `kitten themes`.
+- **config/ghostty/config**, **config/starship.toml** - Ghostty terminal and Starship prompt configs
 - **claude/hooks/** - Claude Code Stop hook scripts (symlinked into ~/.claude/hooks/)
   - `codex-review.py` - Stop hook that hands off plans to Codex (read-only) for
     review via a shared markdown file in the Obsidian vault. Git-syncs the file

@@ -248,23 +248,24 @@ if [ -x "$HOME/.claude/local/claude" ]; then
     alias claude="_load_nvm && $HOME/.claude/local/claude"
 fi
 
-# Antigravity
-if [ -d "$HOME/.antigravity/antigravity/bin" ]; then
-    export PATH="$HOME/.antigravity/antigravity/bin:$PATH"
-fi
 # Tailscale
 if [ -x "/Applications/Tailscale.app/Contents/MacOS/Tailscale" ]; then
     alias tailscale="/Applications/Tailscale.app/Contents/MacOS/Tailscale"
 fi
 
-# Starship prompt
-eval "$(starship init zsh)"
+if [[ -o interactive ]]; then
+    chonk_key="$(security find-generic-password -a "$USER" -s CHONK_API_KEY -w 2>/dev/null)"
+    [[ -n "$chonk_key" ]] && export CHONK_API_KEY="$chonk_key"
+    unset chonk_key
+fi
 
-# bun completions
-[ -s "/Users/thomas/.bun/_bun" ] && source "/Users/thomas/.bun/_bun"
 
-# bun
-export BUN_INSTALL="$HOME/.bun"
-export PATH="$BUN_INSTALL/bin:$PATH"
-export PATH="$HOME/.bun/bin:$PATH"
-alias buddy-gotcha="cd ~/Code/buddy-gacha && npm start --"
+# kitty terminal: kittens are only useful inside kitty itself.
+if [[ "$TERM" == "xterm-kitty" ]]; then
+    alias ssh="kitten ssh"      # copies terminfo to the remote host automatically
+    alias icat="kitten icat"    # inline images
+    alias kdiff="kitten diff"   # side-by-side diff with images
+fi
+
+# User-local command-line tools
+export PATH="/Users/thomas/.local/bin:$PATH"

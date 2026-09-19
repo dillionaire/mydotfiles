@@ -154,12 +154,23 @@ ln -sf "$DOTFILES_DIR/.zshrc" "$HOME/.zshrc"
 
 # Create .config directory for app configs
 echo "📁 Creating app config directories..."
-mkdir -p "$HOME/.config/ghostty"
+mkdir -p "$HOME/.config/ghostty" "$HOME/.config/kitty"
 
 # Symlink app configs
 echo "🔗 Symlinking app configs..."
 ln -sf "$DOTFILES_DIR/config/ghostty/config" "$HOME/.config/ghostty/config"
 ln -sf "$DOTFILES_DIR/config/starship.toml" "$HOME/.config/starship.toml"
+# kitty: back up a non-symlink kitty.conf (the stock template) before linking
+if [ -f "$HOME/.config/kitty/kitty.conf" ] && [ ! -L "$HOME/.config/kitty/kitty.conf" ]; then
+    mv "$HOME/.config/kitty/kitty.conf" "$HOME/.config/kitty/kitty.conf.backup.$(date +%Y%m%d_%H%M%S)"
+fi
+ln -sf "$DOTFILES_DIR/config/kitty/kitty.conf" "$HOME/.config/kitty/kitty.conf"
+ln -sf "$DOTFILES_DIR/config/kitty/current-theme.conf" "$HOME/.config/kitty/current-theme.conf"
+# Font used by the kitty config (no-op if already installed)
+if command -v brew &> /dev/null && ! brew list --cask font-jetbrains-mono-nerd-font &> /dev/null; then
+    echo "🔤 Installing JetBrainsMono Nerd Font..."
+    brew install --cask font-jetbrains-mono-nerd-font || warning "Font install failed; kitty will fall back to the system monospace font"
+fi
 
 # Claude Code hooks + chonk-collab CLI
 echo "📁 Creating Claude hooks + bin directories..."
@@ -190,5 +201,6 @@ echo "Installed components:"
 [ -L "$HOME/.zshrc" ] && progress "Dotfiles symlinked"
 [ -L "$HOME/.config/ghostty/config" ] && progress "Ghostty config"
 [ -L "$HOME/.config/starship.toml" ] && progress "Starship config"
+[ -L "$HOME/.config/kitty/kitty.conf" ] && progress "kitty config"
 [ -L "$HOME/.claude/hooks/codex-review.py" ] && progress "Claude codex-review hook"
 [ -L "$HOME/.local/bin/chonk-collab" ] && progress "chonk-collab CLI"

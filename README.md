@@ -42,6 +42,8 @@ source ~/.zshrc
 - Custom Oh My Zsh plugins (zsh-autosuggestions, zsh-syntax-highlighting)
 - Git aliases and helpful shell functions
 - Performance optimizations (lazy NVM loading)
+- kitty terminal config (`config/kitty/`): JetBrainsMono Nerd Font, Catppuccin Mocha, splits layout, macOS cmd-key bindings
+- Ghostty and Starship configs (`config/`)
 - Automatic backup of existing configurations
 - Backup/restore functionality
 - Uninstall script
